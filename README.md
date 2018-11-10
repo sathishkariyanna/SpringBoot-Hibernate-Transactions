@@ -105,25 +105,51 @@ If not specified, the **default propagational behavior is REQUIRED.**
 
 Other options are  REQUIRES_NEW , MANDATORY  , SUPPORTS  , NOT_SUPPORTED  , NEVER  , and  NESTED .
 
-**REQUIRED**
+**REQUIRED**                                                                                                                             
+Indicates that the target method cannot run without an active tx. If a tx has already been started before the invocation of this method, then it will continue in the same tx or a new tx would begin soon as this method is called. 
 
-Indicates that the target method cannot run without an active tx. If a tx has already been started before the invocation of this method, then it will continue in the same tx or a new tx would begin soon as this method is called.    
-**REQUIRES_NEW**
+**REQUIRES_NEW**                                                                                                                         
+Indicates that a new tx has to start every time the target method is called. If already a tx is going on, it will be suspended before starting a new one.  
 
-Indicates that a new tx has to start every time the target method is called. If already a tx is going on, it will be suspended before starting a new one.                                                                                                                  
-**MANDATORY**
-
+**MANDATORY**                                                                                                                           
 Indicates that the target method requires an active tx to be running. If a tx is not going on, it will fail by throwing an exception.   
-**SUPPORTS**
 
+**SUPPORTS**                                                                                                                             
 Indicates that the target method can execute irrespective of a tx. If a tx is running, it will participate in the same tx. If executed without a tx it will still execute if no errors.
-Methods which fetch data are the best candidates for this option.                                                                       
-**NOT_SUPPORTED**
+Methods which fetch data are the best candidates for this option.    
 
+**NOT_SUPPORTED**                                                                                                                       
 Indicates that the target method doesn’t require the transaction context to be propagated.
-Mostly those methods which run in a transaction but perform in-memory operations are the best candidates for this option.               
-**NEVER**
+Mostly those methods which run in a transaction but perform in-memory operations are the best candidates for this option.      
 
+**NEVER**                                                                                                                               
 Indicates that the target method will raise an exception if executed in a transactional process.
 This option is mostly not used in projects.
  
+**@Transactional (rollbackFor=Exception.class)**
+
+* Default is rollbackFor=RunTimeException.class
+* In Spring, all API classes throw RuntimeException, which means if any method fails, the container will always rollback the ongoing transaction.
+* The problem is only with checked exceptions. So this option can be used to declaratively rollback a transaction if Checked Exception occurs.
+
+**@Transactional (noRollbackFor=IllegalStateException.class)**
+
+Indicates that a rollback should not be issued if the target method raises this exception.
+
+**@Transactional(timeout=60)**
+
+Defaults to the default timeout of the underlying transaction system.
+
+Informs the tx manager about the time duration to wait for an idle tx before a decision is taken to rollback non-responsive transactions.	                                                                                                                     
+
+**@Transactional: Service or DAO Layer?**
+
+The Service is the best place for putting @Transactional, service layer should hold the detail-level use case behavior for a user interaction that would logically go in a transaction.
+
+There are a lot of CRUD applications that don't have any significant business logic for them having a service layer that just passes data through between the controllers and data access objects is not useful. In these cases we can put transaction annotation on Dao.
+
+So in practice you can put them in either place, it's up to you.
+
+Also if you put @Transactional   in DAO layer and if your DAO layer is getting reused by different services then it will be difficult to put it on DAO layer as different services may have different requirements.
+
+If your service layer is retrieving objects using Hibernate and let's say you have lazy initializations in your domain object definition then you need to have a transaction open in service layer else you will face LazyInitializationException  thrown by the ORM.
